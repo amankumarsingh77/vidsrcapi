@@ -1,6 +1,6 @@
 {
     "builds": [
-      {"src": "vidsrc.py", "use": "@now/python"}
+      {"src": "vidsrc.py", "use": "@vercel/python"}
     ],
     "routes": [
       {"src": "/(.*)", "dest": "vidsrc.py"}
