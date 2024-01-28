@@ -27,6 +27,7 @@ class VidsrcMeExtractor:
 
         if req.status_code != 200:
             print(f"[VidSrcExtractor] Couldn't fetch \"{req.url}\", status code: {req.status_code}\n[VidSrcExtractor] \"{self.BASE_URL}\" likely doesn't have the requested media...")
+            print(req.url)
             return {}, f"https://{urlparse(req.url).hostname}/"
 
         soup = BeautifulSoup(req.text, "html.parser")
@@ -60,7 +61,7 @@ class VidsrcMeExtractor:
 
         return req.headers.get("location")
 
-    def get_streams(self, media_id: str, season: Optional[str], episode: Optional[str]) -> Optional[str]:
+    def get_streams(self, media_id: str, season: Optional[str], episode: Optional[str]) -> Optional[Dict]:
         url = f"{self.BASE_URL}/embed/{media_id}"
         if season and episode:
             url += f"/{season}-{episode}/"
@@ -74,13 +75,20 @@ class VidsrcMeExtractor:
 
         source_url, source_url_referrer = self.get_source(source, sources_referrer)
         if not source_url:
-            print(f"[VidSrcExtractor] Could not retrieve source URL, please check you can request \"{url}\", if this issue persists please open an issue.")
+            print(f"[VidSrcExtractor] Could not retrieve source url, please check you can request \"{url}\", if this issue persists please open an issue.")
             return None
-
+        
         final_source_url = self.get_source_url(source_url, source_url_referrer)
-        if final_source_url:
-            return final_source_url
+        if "vidsrc.stream" in final_source_url:
+            print(f"[>] Fetching source for \"{self.source_name}\"...")
 
+            extractor = VidsrcStreamExtractor()
+            return extractor.resolve_source(url=source_url, referrer=source_url_referrer)
+        
+        elif "multiembed.mov" in final_source_url:
+            extractor = MultiembedExtractor()
+            return extractor.resolve_source(url=source_url, referrer=source_url_referrer)
+        
         return None
 
 @app.get("/get_streams")
@@ -95,14 +103,14 @@ async def get_streams(
         fetch_subtitles=True
     )
 
-    stream_url = vse.get_streams(
+    stream_data = vse.get_streams(
         media_id=media_id,
         season=season,
         episode=episode
     )
 
-    if stream_url:
-        return {"stream_url": stream_url}
+    if stream_data and  stream_data.get("streams"):
+        return {"stream_url": stream_data["streams"][0]}
     else:
         return {"error": "Failed to retrieve stream URL"}
 
