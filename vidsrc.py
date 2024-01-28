@@ -8,7 +8,6 @@ from fastapi import FastAPI, Query
 from sources.superembed import MultiembedExtractor
 from sources.vidsrcpro import VidsrcStreamExtractor
 from utils import Utilities
-
 app = FastAPI()
 
 SUPPORTED_SOURCES = ["VidSrc PRO", "Superembed"]
